@@ -17,10 +17,9 @@ type CalcService interface {
 func _CalcServiceAuth_Handler(srv CalcService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
-
 			err = srv.CalcServiceAuth(c)
-			if err != nil {
 
+			if err != nil {
 				return c.String(500, err.Error())
 			}
 
@@ -28,21 +27,19 @@ func _CalcServiceAuth_Handler(srv CalcService) echo.MiddlewareFunc {
 		}
 	}
 }
+
 func _add_Handler(srv CalcService) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		req := new(AddReq)
 
 		if err = c.Bind(req); err != nil {
-
 			return c.JSON(500, err)
-
 		}
 		/*
 
 		 */
 		resp, bizError, err := srv.Add(c, req)
 		if err != nil {
-
 			return c.String(500, err.Error())
 		}
 		if bizError != nil {
