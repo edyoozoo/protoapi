@@ -9,33 +9,54 @@ import (
 
 // AppService is the interface contains all the controllers
 type AppService interface {
-	GetEnv(c echo.Context, req *EnvListRequest) (resp *EnvListResponse, bizError **Error, err error)
+	AppServiceAuth(c echo.Context) (err error)
 
-	RegisterService(c echo.Context, req *RegisterServiceRequest) (resp *RegisterServiceResponse, bizError **Error, err error)
+	GetEnv(c echo.Context, req *EnvListRequest) (resp *EnvListResponse, bizError *Error, err error)
 
-	UpdateService(c echo.Context, req *UpdateServiceRequest) (resp *UpdateServiceResponse, bizError **Error, err error)
+	RegisterService(c echo.Context, req *RegisterServiceRequest) (resp *RegisterServiceResponse, bizError *Error, err error)
 
-	UploadProtoFile(c echo.Context, req *UploadProtoFileRequest) (resp *UploadProtoFileResponse, bizError **Error, err error)
+	UpdateService(c echo.Context, req *UpdateServiceRequest) (resp *UpdateServiceResponse, bizError *Error, err error)
 
-	GetTags(c echo.Context, req *TagListRequest) (resp *TagListResponse, bizError **Error, err error)
+	UploadProtoFile(c echo.Context, req *UploadProtoFileRequest) (resp *UploadProtoFileResponse, bizError *Error, err error)
 
-	GetProducts(c echo.Context, req *ProductListRequest) (resp *ProductListResponse, bizError **Error, err error)
+	GetTags(c echo.Context, req *TagListRequest) (resp *TagListResponse, bizError *Error, err error)
 
-	GetServices(c echo.Context, req *ServiceListRequest) (resp *ServiceListResponse, bizError **Error, err error)
+	GetProducts(c echo.Context, req *ProductListRequest) (resp *ProductListResponse, bizError *Error, err error)
 
-	SearchServices(c echo.Context, req *ServiceSearchRequest) (resp *ServiceListResponse, bizError **Error, err error)
+	GetServices(c echo.Context, req *ServiceListRequest) (resp *ServiceListResponse, bizError *Error, err error)
 
-	GetKeyList(c echo.Context, req *KeyListRequest) (resp *KeyListResponse, bizError **Error, err error)
+	SearchServices(c echo.Context, req *ServiceSearchRequest) (resp *ServiceListResponse, bizError *Error, err error)
 
-	GetKeyValueList(c echo.Context, req *KeyValueListRequest) (resp *KeyValueListResponse, bizError **Error, err error)
+	GetKeyList(c echo.Context, req *KeyListRequest) (resp *KeyListResponse, bizError *Error, err error)
 
-	SearchKeyValueList(c echo.Context, req *SearchKeyValueListRequest) (resp *KeyValueListResponse, bizError **Error, err error)
+	GetKeyValueList(c echo.Context, req *KeyValueListRequest) (resp *KeyValueListResponse, bizError *Error, err error)
 
-	UpdateKeyValue(c echo.Context, req *KeyValueRequest) (resp *KeyValueResponse, bizError **Error, err error)
+	SearchKeyValueList(c echo.Context, req *SearchKeyValueListRequest) (resp *KeyValueListResponse, bizError *Error, err error)
 
-	FetchKeyHistory(c echo.Context, req *KVHistoryRequest) (resp *KVHistoryResponse, bizError **Error, err error)
+	UpdateKeyValue(c echo.Context, req *KeyValueRequest) (resp *KeyValueResponse, bizError *Error, err error)
+
+	FetchKeyHistory(c echo.Context, req *KVHistoryRequest) (resp *KVHistoryResponse, bizError *Error, err error)
 }
 
+func _AppServiceAuth_Handler(srv AppService) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) (err error) {
+
+			err = srv.AppServiceAuth(c)
+			if err != nil {
+
+				// e:= err.(*CommonError) will panic if assertion fail, which is not what we want
+				if e, ok := err.(*CommonError); ok {
+					return c.JSON(420, e)
+				}
+
+				return c.String(500, err.Error())
+			}
+
+			return next(c)
+		}
+	}
+}
 func _getEnv_Handler(srv AppService) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		req := new(EnvListRequest)
@@ -503,17 +524,18 @@ func RegisterAppServiceWithPrefix(e *echo.Echo, srv AppService, prefix string) {
 	if _, ok := e.Binder.(*echo.DefaultBinder); ok {
 		e.Binder = new(protoapigo.JSONAPIBinder)
 	}
-	e.POST(prefix+"/AppService.getEnv", _getEnv_Handler(srv))
-	e.POST(prefix+"/AppService.registerService", _registerService_Handler(srv))
-	e.POST(prefix+"/AppService.updateService", _updateService_Handler(srv))
-	e.POST(prefix+"/AppService.uploadProtoFile", _uploadProtoFile_Handler(srv))
-	e.POST(prefix+"/AppService.getTags", _getTags_Handler(srv))
-	e.POST(prefix+"/AppService.getProducts", _getProducts_Handler(srv))
-	e.POST(prefix+"/AppService.getServices", _getServices_Handler(srv))
-	e.POST(prefix+"/AppService.searchServices", _searchServices_Handler(srv))
-	e.POST(prefix+"/AppService.getKeyList", _getKeyList_Handler(srv))
-	e.POST(prefix+"/AppService.getKeyValueList", _getKeyValueList_Handler(srv))
-	e.POST(prefix+"/AppService.searchKeyValueList", _searchKeyValueList_Handler(srv))
-	e.POST(prefix+"/AppService.updateKeyValue", _updateKeyValue_Handler(srv))
-	e.POST(prefix+"/AppService.fetchKeyHistory", _fetchKeyHistory_Handler(srv))
+	g := e.Group(prefix+"/AppService", _AppServiceAuth_Handler(srv))
+	g.POST(".getEnv", _getEnv_Handler(srv))
+	g.POST(".registerService", _registerService_Handler(srv))
+	g.POST(".updateService", _updateService_Handler(srv))
+	g.POST(".uploadProtoFile", _uploadProtoFile_Handler(srv))
+	g.POST(".getTags", _getTags_Handler(srv))
+	g.POST(".getProducts", _getProducts_Handler(srv))
+	g.POST(".getServices", _getServices_Handler(srv))
+	g.POST(".searchServices", _searchServices_Handler(srv))
+	g.POST(".getKeyList", _getKeyList_Handler(srv))
+	g.POST(".getKeyValueList", _getKeyValueList_Handler(srv))
+	g.POST(".searchKeyValueList", _searchKeyValueList_Handler(srv))
+	g.POST(".updateKeyValue", _updateKeyValue_Handler(srv))
+	g.POST(".fetchKeyHistory", _fetchKeyHistory_Handler(srv))
 }
