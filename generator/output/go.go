@@ -194,16 +194,15 @@ func (g *goGen) Gen(applicationName string, packageName string, services []*data
 		return
 	}
 
+	result, err = g.echoGen.Gen(applicationName, packageName, services, messages, enums, options)
+
 	for _, service := range services {
 		g.serviceTpl = g.getTpl("/generator/template/go/service.gogo")
 		serviceContent := g.genGoService(service)
 		serviceFilename := genEchoFileName(g.PackageName, service)
 		g.serviceTpl = nil
-
 		result[serviceFilename] = serviceContent
 	}
-
-	result, err = g.echoGen.Gen(applicationName, packageName, services, messages, enums, options)
 
 	return
 }
