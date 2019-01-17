@@ -32,17 +32,21 @@ type AppService interface {
 	GetApp(c echo.Context, req *AppRequest) (resp *Empty, bizError *BizError, err error)
 }
 
+func _AppServiceAuth_Handler(srv AppService) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) (err error) {
+			err = srv.AppServiceAuth(c)
+			if err != nil {
+				return c.String(500, err.Error())
+			}
+
+			return next(c)
+		}
+	}
+}
+
 func _getApp_Handler(srv AppService) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
-		// auth
-		err := srv.AppServiceAuth(c)
-		if err != nil {
-			if e, ok := err.(*CommonError); ok {
-				return c.JSON(420, e)
-			}
-			return c.String(500, err.Error())
-		}
-
 		// bind data
 		req := new(AppRequest)
 		if err = c.Bind(req); err != nil {
@@ -75,7 +79,7 @@ func RegisterAppServiceWithPrefix(e *echo.Echo, srv AppService, prefix string) {
 	if _, ok := e.Binder.(*echo.DefaultBinder); ok {
 		e.Binder = new(protoapigo.JSONAPIBinder)
 	}
-
-	e.POST(prefix+"/AppService.getApp", _getApp_Handler(srv))
+	g := e.Group(prefix+"/AppService", _AppServiceAuth_Handler(srv))
+	g.POST(".getApp", _getApp_Handler(srv))
 }
 ```
